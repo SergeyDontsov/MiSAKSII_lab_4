@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Панель управления Форумом</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f4f7f6; font-size: 0.9rem; }
+        .sidebar-section { background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .card { border: none; border-radius: 10px; transition: 0.3s; }
+        .card:hover { box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .sticky-top { top: 20px; z-index: 1000; }
+        .post-item { border-left: 3px solid #0d6efd; background: #fff; margin-bottom: 10px; padding: 10px; border-radius: 0 5px 5px 0; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow-sm">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="/">FORUM ENGINE</a>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#loginModal">Вход</button>
+            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#registerModal">Регистрация</button>
+            <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#profileModal">Профиль</button>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="row">
+        <div class="col-lg-4 mb-4">
+            <div class="sticky-top">
+                <div class="sidebar-section p-3 mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">Категории</h5>
+                        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addCategoryModal">+</button>
+                    </div>
+                    <div class="list-group list-group-flush">
+                        {% for cat in categories %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <span title="{{ cat.description }}">{{ cat.name }}</span>
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-link text-danger" onclick="deleteCategory('{{ cat.id }}')">✕</button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="sidebar-section p-3">
+                    <h5>Все пользователи</h5>
+                    <div id="usersList" class="small text-muted">Загрузка...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div id="threadListView">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="h4">Список тем</h2>
+                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addThreadModal">+ Тема</button>
+                </div>
+
+                {% for thread in threads %}
+                <div class="card mb-3 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <h5 class="card-title text-primary">{{ thread.title }}</h5>
+                            {% if thread.pinned %}<span class="badge bg-warning text-dark">📌 Закреплено</span>{% endif %}
+                        </div>
+                        <p class="text-secondary">{{ thread.description }}</p>
+                        <div class="d-flex flex-wrap gap-2 align-items-center border-top pt-2">
+                            <small class="me-auto">Статус: <b>{{ thread.status }}</b></small>
+                            <button class="btn btn-sm btn-outline-primary" onclick="viewThread('{{ thread.id }}')">Открыть</button>
+                            <button class="btn btn-sm btn-outline-info" onclick="openMoveModal('{{ thread.id }}')">Переместить</button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="pinThread('{{ thread.id }}')">📌</button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteThread('{{ thread.id }}')">🗑️</button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div id="threadDetailView" style="display:none;">
+                <button class="btn btn-sm btn-secondary mb-3" onclick="showThreadList()">← Назад</button>
+                <h3 id="viewThreadTitle"></h3>
+                <div id="postsContainer" class="mt-4"></div>
+                <hr>
+                <h5>Ответить</h5>
+                <textarea id="newPostContent" class="form-control mb-2" rows="3"></textarea>
+                <button class="btn btn-primary" onclick="createPost()">Отправить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="profileModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5>Настройки профиля</h5></div>
+            <div class="modal-body">
+                <form onsubmit="event.preventDefault(); updateUser();">
+                    <p class="text-muted small">Для изменений введите логин и текущий пароль</p>
+                    <input type="text" id="u_login" class="form-control mb-2" placeholder="Ваш логин" required>
+                    <input type="password" id="u_old_pass" class="form-control mb-2" placeholder="Текущий пароль" required>
+                    <hr>
+                    <input type="password" id="u_new_pass" class="form-control mb-2" placeholder="Новый пароль (опционально)">
+                    <input type="text" id="u_name" class="form-control mb-2" placeholder="Новое имя">
+                    <input type="email" id="u_email" class="form-control mb-2" placeholder="Новый Email">
+                    <input type="text" id="u_phone" class="form-control mb-3" placeholder="Новый телефон">
+                    <button type="submit" class="btn btn-warning w-100">Сохранить изменения</button>
+                </form>
+                <hr>
+                <button class="btn btn-outline-danger btn-sm w-100" onclick="deleteAccount()">Удалить мой аккаунт</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addCategoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form class="modal-content" onsubmit="event.preventDefault(); createCategory();">
+            <div class="modal-header"><h5>Новая категория</h5></div>
+            <div class="modal-body">
+                <input type="text" id="c_name" class="form-control mb-2" placeholder="Название" required>
+                <textarea id="c_desc" class="form-control" placeholder="Описание"></textarea>
+            </div>
+            <div class="modal-footer"><button type="submit" class="btn btn-primary">Создать</button></div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="addThreadModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form class="modal-content" onsubmit="event.preventDefault(); createThread();">
+            <div class="modal-header"><h5>Создать тему</h5></div>
+            <div class="modal-body">
+                <input type="text" id="t_title" class="form-control mb-2" placeholder="Заголовок" required>
+                <textarea id="t_desc" class="form-control mb-2" placeholder="Описание"></textarea>
+                <select id="t_cat" class="form-select">
+                    {% for cat in categories %}<option value="{{ cat.id }}">{{ cat.name }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="modal-footer"><button type="submit" class="btn btn-success">Опубликовать</button></div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="moveThreadModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header"><h5>Переместить в...</h5></div>
+            <div class="modal-body">
+                <input type="hidden" id="move_thread_id">
+                <select id="move_cat_id" class="form-select">
+                    {% for cat in categories %}<option value="{{ cat.id }}">{{ cat.name }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="modal-footer"><button class="btn btn-primary w-100" onclick="moveThread()">Переместить</button></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    window.onload = () => { fetchUsers(); };
+
+    async function fetchUsers() {
+        const res = await fetch('/USER');
+        const data = await res.json();
+        document.getElementById('usersList').innerHTML = data.map(u => `<div>• ${u.login}</div>`).join('');
+    }
+
+    // РАБОТА С ПРОФИЛЕМ (POST /USER и DELETE /USER)
+    async function updateUser() {
+        const payload = {
+            login: document.getElementById('u_login').value,
+            old_pass: document.getElementById('u_old_pass').value,
+            new_pass: document.getElementById('u_new_pass').value || null,
+            name: document.getElementById('u_name').value || null,
+            email: document.getElementById('u_email').value || null,
+            phone: document.getElementById('u_phone').value || null
+        };
+        const res = await fetch('/USER', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        if(res.ok) { alert('Обновлено!'); location.reload(); }
+        else alert('Ошибка. Проверьте старый пароль.');
+    }
+
+    async function deleteAccount() {
+        const login = prompt("Введите логин:");
+        const pass = prompt("Введите пароль для удаления:");
+        if(login && pass) {
+            const res = await fetch(`/USER?login=${login}&Password=${pass}`, { method: 'DELETE' });
+            if(res.ok) { alert('Аккаунт удален'); location.reload(); }
+            else alert('Ошибка удаления');
+        }
+    }
+
+    // РЕГИСТРАЦИЯ И ВХОД
+    async function login() {
+        const l = document.getElementById('l_login').value;
+        const p = document.getElementById('l_pass').value;
+        const res = await fetch(`/USER/login?Login=${l}&Password=${p}`);
+        if(res.ok) { alert('Успешно!'); location.reload(); }
+        else alert('Неверный логин/пароль');
+    }
+
+    async function register() {
+        const data = {
+            login: document.getElementById('r_login').value,
+            password: document.getElementById('r_pass').value,
+            name: document.getElementById('r_name').value || "User",
+            phone: document.getElementById('r_phone').value || "",
+            email: document.getElementById('r_email').value || ""
+        };
+        const res = await fetch('/USER', {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        if(res.ok) location.reload();
+    }
+
+    // ТЕМЫ И ПОСТЫ
+    let currentThreadId = null;
+
+    async function viewThread(id) {
+        currentThreadId = id;
+        const res = await fetch(`/THREAD/${id}`);
+        const thread = await res.json();
+        document.getElementById('threadListView').style.display = 'none';
+        document.getElementById('threadDetailView').style.display = 'block';
+        document.getElementById('viewThreadTitle').innerText = thread.title;
+        const postsHtml = thread.Posts.map(p => `
+            <div class="post-item shadow-sm">
+                <div class="d-flex justify-content-between small text-muted">
+                    <span>Автор ID: ${p.author_id} | ${p.date}</span>
+                    <button class="btn btn-sm text-danger" onclick="deletePost('${p.id}')">🗑️</button>
+                </div>
+                <div class="mt-2">${p.content}</div>
+            </div>`).join('');
+        document.getElementById('postsContainer').innerHTML = postsHtml || 'Сообщений нет';
+    }
+
+    function showThreadList() {
+        document.getElementById('threadListView').style.display = 'block';
+        document.getElementById('threadDetailView').style.display = 'none';
+    }
+
+    async function createPost() {
+        const content = document.getElementById('newPostContent').value;
+        await fetch(`/THREAD/${currentThreadId}/POSTS`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ content })
+        });
+        document.getElementById('newPostContent').value = '';
+        viewThread(currentThreadId);
+    }
+
+    async function deletePost(id) {
+        await fetch(`/POST/${id}`, { method: 'DELETE' });
+        viewThread(currentThreadId);
+    }
+
+    // УПРАВЛЕНИЕ ТЕМАМИ И КАТЕГОРИЯМИ
+    async function createCategory() {
+        await fetch('/CATEGORY', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ name: document.getElementById('c_name').value, description: document.getElementById('c_desc').value })
+        });
+        location.reload();
+    }
+
+    async function deleteCategory(id) {
+        if(confirm('Удалить категорию?')) { await fetch(`/CATEGORY/${id}`, { method: 'DELETE' }); location.reload(); }
+    }
+
+    async function createThread() {
+        const data = {
+            title: document.getElementById('t_title').value,
+            description: document.getElementById('t_desc').value,
+            category_id: parseInt(document.getElementById('t_cat').value)
+        };
+        await fetch('/THREAD', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+        location.reload();
+    }
+
+    async function deleteThread(id) {
+        if(confirm('Удалить тему?')) { await fetch(`/THREAD/${id}`, { method: 'DELETE' }); location.reload(); }
+    }
+
+    async function pinThread(id) {
+        await fetch(`/THREAD/${id}/pin`, { method: 'PUT' });
+        location.reload();
+    }
+
+    function openMoveModal(id) {
+        document.getElementById('move_thread_id').value = id;
+        new bootstrap.Modal(document.getElementById('moveThreadModal')).show();
+    }
+
+    async function moveThread() {
+        const id = document.getElementById('move_thread_id').value;
+        const catId = document.getElementById('move_cat_id').value;
+        await fetch(`/THREAD/${id}/move`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ category_id: parseInt(catId) })
+        });
+        location.reload();
+    }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
