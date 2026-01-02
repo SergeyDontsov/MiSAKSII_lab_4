@@ -200,30 +200,41 @@
         }
     }
 
-    // РЕГИСТРАЦИЯ И ВХОД
-    async function login() {
-        const l = document.getElementById('l_login').value;
-        const p = document.getElementById('l_pass').value;
-        const res = await fetch(`/USER/login?Login=${l}&Password=${p}`);
-        if(res.ok) { alert('Успешно!'); location.reload(); }
-        else alert('Неверный логин/пароль');
+    //  ВХОД
+async function login() {
+    const l = document.getElementById('l_login').value;
+    const p = document.getElementById('l_pass').value;
+    // ВАЖНО: В Python у вас прописано Login и Password с большой буквы
+    const res = await fetch(`/USER/login?Login=${encodeURIComponent(l)}&Password=${encodeURIComponent(p)}`);
+    if(res.ok) { 
+        alert('Успешно!'); 
+        location.reload(); 
+    } else { 
+        alert('Неверный логин/пароль'); 
     }
+}
 
-    async function register() {
-        const data = {
-            login: document.getElementById('r_login').value,
-            password: document.getElementById('r_pass').value,
-            name: document.getElementById('r_name').value || "User",
-            phone: document.getElementById('r_phone').value || "",
-            email: document.getElementById('r_email').value || ""
-        };
-        const res = await fetch('/USER', {
-            method: 'PUT',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(data)
-        });
-        if(res.ok) location.reload();
+    // РЕГИСТРАЦИЯ
+async function register() {
+    const data = {
+        login: document.getElementById('r_login').value,
+        password: document.getElementById('r_pass').value,
+        name: document.getElementById('r_name').value || "User",
+        phone: document.getElementById('r_phone').value || "",
+        email: document.getElementById('r_email').value || ""
+    };
+    const res = await fetch('/USER', {
+        method: 'POST', // ОБЯЗАТЕЛЬНО POST (в тон вашему Python коду)
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    });
+    if(res.ok) {
+        alert('Регистрация успешна!');
+        location.reload();
+    } else {
+        alert('Ошибка регистрации (возможно, логин занят)');
     }
+}
 
     // ТЕМЫ И ПОСТЫ
     let currentThreadId = null;
@@ -319,4 +330,5 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>
