@@ -136,7 +136,7 @@ async def login_user(Login: str = Query(...), Password: str = Query(...)):
     raise HTTPException(status_code=401, detail="Unauthorized")
 
 # Регистрация нового пользователя
-@app.put("/USER")
+@app.post("/USER") # Было @app.put
 async def register_user(user: UserCreate):
     existing = await get_user_by_login(user.login)
     if existing:
